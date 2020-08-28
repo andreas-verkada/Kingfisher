@@ -71,8 +71,7 @@ class SessionDelegate: NSObject {
             task.onTaskDone.call((.failure(error), [callback]))
             // No other callbacks waiting, we can clear the task now.
             if !task.containsCallbacks {
-                let dataTask = task.task
-                self.remove(dataTask)
+                self.remove(url)
             }
         }
         let token = task.addCallback(callback)
@@ -89,10 +88,7 @@ class SessionDelegate: NSObject {
         return DownloadTask(sessionTask: task, cancelToken: token)
     }
 
-    private func remove(_ task: URLSessionTask) {
-        guard let url = task.originalRequest?.url else {
-            return
-        }
+    private func remove(_ url: URL) {
         lock.lock()
         defer {lock.unlock()}
         tasks[url] = nil
@@ -247,7 +243,9 @@ extension SessionDelegate: URLSessionDataDelegate {
         guard let sessionTask = self.task(for: task) else {
             return
         }
-        remove(task)
+        if let url = task.originalRequest?.url {
+            remove(url)
+        }
         sessionTask.onTaskDone.call((result, sessionTask.callbacks))
     }
 }
